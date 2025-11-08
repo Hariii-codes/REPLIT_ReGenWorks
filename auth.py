@@ -85,14 +85,28 @@ def register():
     form = RegistrationForm()
     if form.validate_on_submit():
         try:
-            # Check if database tables exist
+            # Check if database tables exist - use a simpler check
             try:
-                # Try to query the User table to see if it exists
-                User.query.first()
-            except Exception as e:
-                logger.error(f"Database table 'user' does not exist or is not accessible: {str(e)}")
-                flash('Database is not initialized. Please contact the administrator.', 'danger')
+                # Just check if we can access the database, don't query for users
+                # This avoids issues with empty tables or connection problems
+                from sqlalchemy import inspect
+                inspector = inspect(db.engine)
+                tables = inspector.get_table_names()
+                tables_lower = [t.lower() for t in tables]
+                
+                if 'user' not in tables_lower:
+                    logger.error("User table does not exist in database")
+                    flash('Database is not initialized. Please contact the administrator.', 'danger')
+                    return render_template('register.html', title='Register', form=form)
+                    
+            except SQLAlchemyError as e:
+                logger.error(f"Database connection error: {str(e)}")
+                flash('Database connection error. Please try again later.', 'danger')
                 return render_template('register.html', title='Register', form=form)
+            except Exception as e:
+                logger.error(f"Error checking database: {str(e)}", exc_info=True)
+                # Don't block registration if we can't check - try to proceed
+                logger.warning("Proceeding with registration despite check failure")
             
             # Create new user
             user = User(
