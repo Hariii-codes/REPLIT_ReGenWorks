@@ -51,9 +51,13 @@ if __name__ == "__main__":
     is_prod = os.environ.get('FLASK_ENV') == 'production'
     port = int(os.environ.get('PORT', 5000))
     
-    # Run the app with appropriate settings
-    app.run(
-        host="0.0.0.0", 
-        port=port, 
-        debug=not is_prod
-    )
+import os
+
+is_prod = os.environ.get("RENDER") is not None
+port = int(os.environ.get("PORT", 10000))
+
+app.run(
+    host="0.0.0.0",
+    port=port,
+    debug=not is_prod
+)
