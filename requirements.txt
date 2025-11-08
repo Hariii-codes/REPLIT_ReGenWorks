@@ -32,5 +32,6 @@ scikit-learn
 
 Flask-WTF
 
+email-validator
 
 
