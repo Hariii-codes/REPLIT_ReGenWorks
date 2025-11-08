@@ -117,7 +117,7 @@ http://localhost:5000/health
    - You can also manually set it in Variables tab
 
 3. **Initialize Database:**
-   - Go to your service → Settings → Deploy → Run Command
+   - Go to your service → Settings → Deploy → Run Commandgit push origin main
    - Run: `python recreate_db.py`
 
 ### Render
