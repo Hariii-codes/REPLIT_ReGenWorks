@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="mb-3">
+                <i class="fas fa-project-diagram me-2"></i>
+                Infrastructure Projects
+            </h1>
+            <p class="text-muted">
+                See how your recycled waste contributes to real infrastructure projects in your community!
+            </p>
+            <div class="mt-3">
+                <a href="{{ url_for('infrastructure_projects_map') }}" class="btn btn-info">
+                    <i class="fas fa-map-marked-alt me-2"></i>View Projects on Map
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Projects Grid -->
+    <div class="row">
+        {% if projects %}
+            {% for project in projects %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card bg-dark h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">{{ project.project_name }}</h5>
+                        <span class="badge 
+                            {% if project.status == 'completed' %}bg-success
+                            {% elif project.status == 'in-progress' or project.status == 'in_progress' %}bg-warning
+                            {% elif project.status == 'planned' %}bg-info
+                            {% else %}bg-secondary{% endif %}">
+                            {{ project.status.replace('_', ' ').replace('-', ' ').title() }}
+                        </span>
+                    </div>
+                    
+                    <!-- OpenLayers Map Preview -->
+                    <div class="card-img-top" style="height: 200px; overflow: hidden;">
+                        <div id="project-map-{{ project.id }}" style="height: 100%; width: 100%;"></div>
+                    </div>
+                    
+                    <div class="card-body">
+                        {% if project.description %}
+                        <p class="text-muted mb-3">{{ project.description[:150] }}{% if project.description|length > 150 %}...{% endif %}</p>
+                        {% endif %}
+                        
+                        <!-- User Contribution -->
+                        {% if user_contributions.get(project.id) and user_contributions[project.id].weight > 0 %}
+                        <div class="alert alert-info mb-3">
+                            <i class="fas fa-user me-1"></i>
+                            <strong>Your Contribution:</strong> 
+                            {{ "%.2f"|format(user_contributions[project.id].weight) }}g
+                            {% if top_contributors.get(project.id) %}
+                            <span class="badge bg-warning ms-2">
+                                <i class="fas fa-trophy me-1"></i>Community Builder
+                            </span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Project Progress -->
+                        {% if project.total_plastic_required_grams %}
+                        <div class="mb-3">
+                            <small class="text-muted d-block mb-1">Progress:</small>
+                            <div class="progress" style="height: 25px;">
+                                {% set progress = (project.total_plastic_allocated_grams / project.total_plastic_required_grams * 100) if project.total_plastic_required_grams > 0 else 0 %}
+                                <div class="progress-bar {% if progress >= 100 %}bg-success{% elif progress >= 50 %}bg-warning{% else %}bg-info{% endif %}" 
+                                     role="progressbar" 
+                                     style="width: {{ progress }}%"
+                                     aria-valuenow="{{ progress }}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                    {{ "%.0f"|format(progress) }}%
+                                </div>
+                            </div>
+                            <small class="text-muted">
+                                {{ "%.0f"|format(project.total_plastic_allocated_grams) }}g / 
+                                {{ "%.0f"|format(project.total_plastic_required_grams) }}g
+                            </small>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="card-footer">
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('infrastructure_project_detail', project_id=project.id) }}" 
+                               class="btn btn-primary btn-sm">
+                                <i class="fas fa-info-circle me-1"></i>View Details
+                            </a>
+                            {% if current_user.is_authenticated %}
+                            <a href="{{ url_for('contribute_to_project', waste_item_id=0) }}" 
+                               class="btn btn-success btn-sm">
+                                <i class="fas fa-plus me-1"></i>Contribute Materials
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No infrastructure projects found. Check back later!
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/ol@v7.3.0/dist/ol.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize maps for each project card
+        {% for project in projects %}
+        (function() {
+            const projectId = {{ project.id }};
+            const lat = {{ project.location_lat }};
+            const lon = {{ project.location_lng }};
+            const projectName = "{{ project.project_name|e }}";
+            const status = "{{ project.status }}";
+            
+            // Initialize OpenLayers map for this project
+            const map = new ol.Map({
+                target: 'project-map-' + projectId,
+                layers: [
+                    new ol.layer.Tile({
+                        source: new ol.source.OSM()
+                    })
+                ],
+                view: new ol.View({
+                    center: ol.proj.fromLonLat([lon, lat]),
+                    zoom: 14
+                })
+            });
+            
+            // Create a marker for the project location
+            const marker = new ol.Feature({
+                geometry: new ol.geom.Point(
+                    ol.proj.fromLonLat([lon, lat])
+                )
+            });
+            
+            // Style the marker based on project status
+            let markerColor = '#007bff'; // Default blue
+            if (status === 'completed') {
+                markerColor = '#28a745'; // Green
+            } else if (status === 'in_progress' || status === 'in-progress') {
+                markerColor = '#ffc107'; // Yellow
+            } else if (status === 'planned') {
+                markerColor = '#17a2b8'; // Cyan
+            }
+            
+            const markerStyle = new ol.style.Style({
+                image: new ol.style.Circle({
+                    radius: 6,
+                    fill: new ol.style.Fill({
+                        color: markerColor
+                    }),
+                    stroke: new ol.style.Stroke({
+                        color: '#fff',
+                        width: 2
+                    })
+                })
+            });
+            
+            marker.setStyle(markerStyle);
+            
+            // Create vector source and layer
+            const vectorSource = new ol.source.Vector({
+                features: [marker]
+            });
+            
+            const vectorLayer = new ol.layer.Vector({
+                source: vectorSource
+            });
+            
+            map.addLayer(vectorLayer);
+            
+            // Disable map controls for card preview (users can click to view details)
+            map.getControls().clear();
+        })();
+        {% endfor %}
+    });
+</script>
+{% endblock %}
+

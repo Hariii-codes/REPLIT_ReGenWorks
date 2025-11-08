@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="mb-0">
+                <i class="fas fa-chart-line me-2"></i>{{ get_localized_string('footprint.dashboard.plastic_footprint_dashboard', get_current_language(), 'Plastic Footprint Dashboard') }}
+            </h1>
+            {% if total_lifetime == 0 and not recent_scans %}
+            <form method="POST" action="{{ url_for('sync_footprint_data') }}" class="d-inline">
+                <button type="submit" class="btn btn-warning">
+                    <i class="fas fa-sync me-1"></i>Sync My Data
+                </button>
+            </form>
+            {% endif %}
+        </div>
+        {% if total_lifetime == 0 and not recent_scans %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            No footprint data found. Scan some waste items to start tracking your footprint!
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Badge Display -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card bg-dark border-primary">
+            <div class="card-body text-center">
+                <h5 class="card-title">{{ get_localized_string('footprint.dashboard.your_badge_level', get_current_language(), 'Your Badge Level') }}</h5>
+                <div class="display-1 mb-3">
+                    {% if badge_level == 'Champion' %}
+                        <i class="fas fa-trophy text-warning"></i>
+                    {% elif badge_level == 'Gold' %}
+                        <i class="fas fa-medal text-warning"></i>
+                    {% elif badge_level == 'Silver' %}
+                        <i class="fas fa-medal text-secondary"></i>
+                    {% else %}
+                        <i class="fas fa-award text-warning"></i>
+                    {% endif %}
+                </div>
+                                <h3 class="text-primary">{{ badge_level }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-dark border-success">
+            <div class="card-body text-center">
+                <h5 class="card-title">{{ get_localized_string('footprint.dashboard.total_lifetime_weight', get_current_language(), 'Total Lifetime Weight') }}</h5>
+                <h2 class="text-success">{{ "%.2f"|format(total_lifetime) }}g</h2>
+                <small class="text-muted">{{ get_localized_string('footprint.dashboard.all_time_contribution', get_current_language(), 'All time contribution') }}</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-dark border-info">
+            <div class="card-body text-center">
+                <h5 class="card-title">{{ get_localized_string('footprint.dashboard.current_week', get_current_language(), 'Current Week') }}</h5>
+                {% if current_weekly %}
+                <h2 class="text-info">{{ "%.2f"|format(current_weekly.total_weight_grams) }}g</h2>
+                <small class="text-muted">
+                    {% if current_weekly.comparison_percentage > 0 %}
+                        <span class="text-success">↑ {{ "%.1f"|format(current_weekly.comparison_percentage) }}%</span>
+                    {% elif current_weekly.comparison_percentage < 0 %}
+                        <span class="text-danger">↓ {{ "%.1f"|format(current_weekly.comparison_percentage) }}%</span>
+                    {% else %}
+                        <span class="text-muted">{{ get_localized_string('footprint.dashboard.no_change', get_current_language(), 'No change') }}</span>
+                    {% endif %}
+                    {{ get_localized_string('footprint.dashboard.vs_last_week', get_current_language(), 'vs last week') }}
+                </small>
+                {% else %}
+                <h2 class="text-info">0g</h2>
+                <small class="text-muted">{{ get_localized_string('footprint.dashboard.no_data_this_week', get_current_language(), 'No data this week') }}</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Weekly Chart -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card bg-dark">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>{{ get_localized_string('footprint.dashboard.weekly_plastic_footprint', get_current_language(), 'Weekly Plastic Footprint') }}</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="weeklyChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Scans -->
+<div class="row">
+    <div class="col-12">
+        <div class="card bg-dark">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-history me-2"></i>{{ get_localized_string('footprint.dashboard.recent_scans', get_current_language(), 'Recent Scans') }}</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_scans %}
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover">
+                        <thead>
+                            <tr>
+                                <th>{{ get_localized_string('footprint.dashboard.date', get_current_language(), 'Date') }}</th>
+                                <th>{{ get_localized_string('footprint.dashboard.material_type', get_current_language(), 'Material Type') }}</th>
+                                <th>{{ get_localized_string('footprint.dashboard.weight_g', get_current_language(), 'Weight (g)') }}</th>
+                                <th>{{ get_localized_string('footprint.dashboard.confidence', get_current_language(), 'Confidence') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for scan in recent_scans %}
+                            <tr>
+                                <td>{{ scan.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td><span class="badge bg-primary">{{ scan.material_type }}</span></td>
+                                <td>{{ "%.2f"|format(scan.estimated_weight_grams) }}g</td>
+                                <td>
+                                    {% if scan.ml_confidence_score %}
+                                        <span class="badge {% if scan.ml_confidence_score >= 0.7 %}bg-success{% elif scan.ml_confidence_score >= 0.5 %}bg-warning{% else %}bg-danger{% endif %}">
+                                            {{ "%.0f"|format(scan.ml_confidence_score * 100) }}%
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">N/A</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">{{ get_localized_string('footprint.dashboard.no_scans_yet_start_scanning_waste_items_to_track_y', get_current_language(), 'No scans yet. Start scanning waste items to track your footprint!') }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    // Weekly Chart
+    const ctx = document.getElementById('weeklyChart');
+    if (ctx) {
+        const weeklyData = [
+            {% for week in weekly_history|reverse %}
+            {
+                week: '{{ week.month.strftime("%b %d") }}',
+                weight: {{ week.total_weight_grams }},
+                comparison: {{ week.comparison_percentage }}
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ];
+        
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: weeklyData.map(d => d.week),
+                datasets: [{
+                    label: 'Weight (grams)',
+                    data: weeklyData.map(d => d.weight),
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#fff'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#fff'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#fff'
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}
+

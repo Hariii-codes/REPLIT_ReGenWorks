@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="mb-3">
+                <i class="fas fa-link me-2"></i>
+                My Material Journey
+            </h1>
+            <p class="text-muted">Track how your recycled materials flow from collection to urban infrastructure</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            {% if contribution_chains %}
+            {% for chain in contribution_chains %}
+            <div class="card bg-dark mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-recycle me-2"></i>
+                        {% if chain.contribution_id %}
+                        Contribution #{{ chain.contribution_id }}
+                        {% else %}
+                        Material Collection
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Contribution Info -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="alert alert-info">
+                                <strong>Your Contribution:</strong><br>
+                                <h4 class="mb-0">{{ "%.2f"|format(chain.weight) }}g</h4>
+                                <small class="text-muted">{{ chain.date[:10] if chain.date else 'N/A' }}</small>
+                            </div>
+                        </div>
+                        {% if chain.batch %}
+                        <div class="col-md-4">
+                            <div class="alert alert-secondary">
+                                <strong>Batch:</strong><br>
+                                <code>{{ chain.batch.batch_id }}</code><br>
+                                <small class="text-muted">{{ chain.batch.material }} • {{ "%.2f"|format(chain.batch.total_weight) }}g</small>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="col-md-4">
+                            <div class="alert alert-warning">
+                                <strong>Status:</strong><br>
+                                <span class="badge bg-warning">Awaiting Batch</span><br>
+                                <small class="text-muted">Material: {{ chain.material }}</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if chain.project %}
+                        <div class="col-md-4">
+                            <div class="alert alert-success">
+                                <strong>Project:</strong><br>
+                                <strong>{{ chain.project.project_name }}</strong><br>
+                                <span class="badge bg-info">{{ chain.project.status }}</span>
+                            </div>
+                        </div>
+                        {% elif chain.batch %}
+                        <div class="col-md-4">
+                            <div class="alert alert-secondary">
+                                <strong>Status:</strong><br>
+                                <span class="badge bg-warning">Awaiting Project</span><br>
+                                <small class="text-muted">Will be linked soon</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Material Journey Flow -->
+                    <div class="material-journey mb-4">
+                        <h6 class="mb-3"><i class="fas fa-route me-2"></i>Material Journey</h6>
+                        <div class="journey-steps">
+                            <!-- Step 1: Collection -->
+                            <div class="journey-step text-center mb-3">
+                                <div class="step-icon bg-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-2" 
+                                     style="width: 60px; height: 60px;">
+                                    <i class="fas fa-hand-holding-heart fa-2x text-white"></i>
+                                </div>
+                                <h6>Collection</h6>
+                                <p class="text-muted small mb-0">You recycled {{ "%.2f"|format(chain.weight) }}g</p>
+                                <p class="text-muted small mb-0">{{ chain.material if chain.material else 'Material' }}</p>
+                            </div>
+                            
+                            {% if chain.batch %}
+                            <div class="text-center mb-3">
+                                <i class="fas fa-arrow-down fa-2x text-primary"></i>
+                            </div>
+                            
+                            <!-- Step 2: Batching -->
+                            <div class="journey-step text-center mb-3">
+                                <div class="step-icon bg-info rounded-circle d-inline-flex align-items-center justify-content-center mb-2" 
+                                     style="width: 60px; height: 60px;">
+                                    <i class="fas fa-box fa-2x text-white"></i>
+                                </div>
+                                <h6>Batching</h6>
+                                <p class="text-muted small mb-0">Added to batch</p>
+                                <code class="small">{{ chain.batch.batch_id[:8] }}...</code>
+                                <p class="text-muted small mb-0">Total: {{ "%.2f"|format(chain.batch.total_weight) }}g</p>
+                            </div>
+                            
+                            {% if chain.project %}
+                            <div class="text-center mb-3">
+                                <i class="fas fa-arrow-down fa-2x text-primary"></i>
+                            </div>
+                            
+                            <!-- Step 3: Infrastructure -->
+                            <div class="journey-step text-center mb-3">
+                                <div class="step-icon bg-success rounded-circle d-inline-flex align-items-center justify-content-center mb-2" 
+                                     style="width: 60px; height: 60px;">
+                                    <i class="fas fa-building fa-2x text-white"></i>
+                                </div>
+                                <h6>Infrastructure</h6>
+                                <p class="text-muted small mb-0">{{ chain.project.project_name }}</p>
+                                <span class="badge bg-info">{{ chain.project.status }}</span>
+                            </div>
+                            {% else %}
+                            <div class="text-center mb-3">
+                                <i class="fas fa-arrow-down fa-2x text-muted"></i>
+                            </div>
+                            
+                            <!-- Step 3: Awaiting Project -->
+                            <div class="journey-step text-center mb-3">
+                                <div class="step-icon bg-warning rounded-circle d-inline-flex align-items-center justify-content-center mb-2" 
+                                     style="width: 60px; height: 60px;">
+                                    <i class="fas fa-clock fa-2x text-white"></i>
+                                </div>
+                                <h6>Awaiting Project</h6>
+                                <p class="text-muted small mb-0">Will be linked soon</p>
+                            </div>
+                            {% endif %}
+                            {% else %}
+                            <div class="text-center mb-3">
+                                <i class="fas fa-arrow-down fa-2x text-muted"></i>
+                            </div>
+                            
+                            <!-- Step 2: Awaiting Batch -->
+                            <div class="journey-step text-center mb-3">
+                                <div class="step-icon bg-warning rounded-circle d-inline-flex align-items-center justify-content-center mb-2" 
+                                     style="width: 60px; height: 60px;">
+                                    <i class="fas fa-clock fa-2x text-white"></i>
+                                </div>
+                                <h6>Awaiting Batch</h6>
+                                <p class="text-muted small mb-0">Will be batched soon</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Blockchain -->
+                    {% if chain.blockchain %}
+                    <div class="blockchain-preview mt-4">
+                        <h6 class="mb-3"><i class="fas fa-link me-2"></i>Blockchain Verification</h6>
+                        <div class="row">
+                            {% for block in chain.blockchain[:3] %}
+                            <div class="col-md-4 mb-3">
+                                <div class="card bg-secondary">
+                                    <div class="card-body p-3">
+                                        <strong>Block #{{ block.block_number }}</strong>
+                                        <span class="badge {% if block.is_valid %}bg-success{% else %}bg-danger{% endif %} ms-2">
+                                            {% if block.is_valid %}✓{% else %}✗{% endif %}
+                                        </span>
+                                        <div class="mt-2">
+                                            <small class="text-muted d-block">Hash:</small>
+                                            <code class="small text-break">{{ block.block_hash[:16] }}...</code>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% if chain.blockchain|length > 3 %}
+                        <p class="text-muted small mt-2">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Showing first 3 blocks. Total: {{ chain.blockchain|length }} blocks
+                        </p>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                You haven't contributed any materials to infrastructure projects yet. Start recycling to see your material journey!
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.journey-steps {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.journey-step {
+    flex: 1;
+}
+.step-icon {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+</style>
+{% endblock %}
+
