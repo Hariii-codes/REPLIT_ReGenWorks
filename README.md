@@ -68,14 +68,19 @@ pip install -r requirements-render.txt
 
 #### 4. Set up PostgreSQL
 - Install PostgreSQL if you haven't already
-- Create a new database:
-  ```bash
-  createdb regenworks
+- **For Windows**: Use the PowerShell setup script:
+  ```powershell
+  .\setup_postgresql.ps1
   ```
-- Or use the included setup script:
+- **For Linux/Mac**: Use the bash setup script:
   ```bash
   chmod +x setup_database.sh
   ./setup_database.sh
+  ```
+- **Manual Setup**: See [POSTGRESQL_SETUP.md](POSTGRESQL_SETUP.md) for detailed instructions
+- Or create database manually:
+  ```bash
+  createdb regenworks
   ```
 
 #### 5. Configure environment variables
@@ -90,6 +95,9 @@ cp .env.example .env
 
 Then edit `.env` and fill in your actual values:
 - `DATABASE_URL` - Database connection string (SQLite or PostgreSQL)
+  - **PostgreSQL format**: `postgresql://username:password@host:port/database_name`
+  - **Example**: `postgresql://postgres:mypassword@localhost:5432/regenworks`
+  - See [POSTGRESQL_SETUP.md](POSTGRESQL_SETUP.md) for detailed setup instructions
 - `SESSION_SECRET` - Flask session secret (generate with: `python -c "import secrets; print(secrets.token_hex(32))"`)
 - `GEMINI_API_KEY` - Google Gemini API key (required)
 - `FIREBASE_SERVICE_ACCOUNT_JSON` - Firebase JSON (optional, for cloud deployments)

@@ -92,7 +92,26 @@ def load_user(user_id):
 with app.app_context():
     try:
         import models  # import your models first
-        db.create_all()
-        logging.info("Database tables created successfully.")
+        # Check if tables exist, if not create them
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        existing_tables = inspector.get_table_names()
+        
+        # Check if User table exists (critical for registration)
+        # SQLAlchemy creates table names in lowercase, but check case-insensitively
+        existing_tables_lower = [t.lower() for t in existing_tables]
+        if 'user' not in existing_tables_lower:
+            logging.warning("User table not found. Creating all database tables...")
+            db.create_all()
+            logging.info("Database tables created successfully.")
+        else:
+            logging.info(f"Database tables already exist. Found {len(existing_tables)} tables.")
+            
     except Exception as e:
-        logging.error(f"Error creating database tables: {str(e)}")
+        logging.error(f"Error checking/creating database tables: {str(e)}", exc_info=True)
+        # Try to create tables anyway
+        try:
+            db.create_all()
+            logging.info("Database tables created after error recovery.")
+        except Exception as e2:
+            logging.error(f"Failed to create database tables: {str(e2)}")

@@ -427,6 +427,10 @@ def register_routes(app):
     
     @app.errorhandler(500)
     def server_error(e):
+        import traceback
+        error_msg = str(e) if e else "Server error"
+        logging.error(f"500 Internal Server Error: {error_msg}")
+        logging.error(f"Traceback: {traceback.format_exc()}")
         return render_template("error.html", error="Server error"), 500
         
     # Register routes for our new features
