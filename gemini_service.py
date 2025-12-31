@@ -6,7 +6,7 @@ from gemini_formatter import format_gemini_response, extract_sections_from_raw_t
 import material_detection
 
 # Configure Google Gemini AI with API key
-api_key = os.environ.get("GEMINI_API_KEY", "AIzaSyADUr_yUHxcO-CemIh0YqbwWSyq-gFEpeI")
+api_key = os.environ.get("GEMINI_API_KEY", "AIzaSyD0qmPtlkosmbG8qPUUKit6b11slQZsP4s")
 genai.configure(api_key=api_key)
 
 # Flag to enable/disable material detection
