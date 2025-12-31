@@ -10,7 +10,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 # Configure Gemini
-api_key = os.environ.get("GEMINI_API_KEY", "AIzaSyCySjGoPaeUeOADjPE4_6IQCSWqYLD-FMI")
+api_key = os.environ.get("GEMINI_API_KEY", "AIzaSyD0qmPtlkosmbG8qPUUKit6b11slQZsP4s")
 genai.configure(api_key=api_key)
 
 # Language codes and names
